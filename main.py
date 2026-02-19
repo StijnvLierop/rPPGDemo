@@ -1,14 +1,13 @@
 import cv2
 import mediapipe as mp
 
-from analysis import ROI_LANDMARK_LOCATIONS, extract_bvp_signal_pos, bvp_signal_to_heart_rate, \
-    FACE_CONTOUR_LANDMARK_LOCATIONS, get_roi_values, extract_bvp_signal_green
+from analysis import (ROI_LANDMARK_LOCATIONS, extract_bvp_signal_pos, bvp_signal_to_heart_rate,
+                      get_roi_values, extract_bvp_signal_green)
 
 
 # GLOBAL DISPLAY SETTINGS
 MAX_NR_OF_FACES = 1
-FACE_CONTOUR_COLOR = (0, 255, 0) # GREEN in BGR
-ROI_LANDMARK_COLOR = (0, 255, 255) # YELLOW in BGR
+ROI_LANDMARK_COLOR = (0, 255, 0) # GREEN in BGR
 DISPLAY_FONT = cv2.FONT_HERSHEY_DUPLEX
 FONT_WEIGHT = 1
 BVP_EXTRACTION_METHOD = 'pos' # 'green' or 'pos'
@@ -57,7 +56,7 @@ while cap.isOpened():
 
         # Show no faces found
         cv2.putText(frame,"Zoeken naar gezichten...", (50, 50),
-                    DISPLAY_FONT, 0.8, FACE_CONTOUR_COLOR, FONT_WEIGHT)
+                    DISPLAY_FONT, 0.8, ROI_LANDMARK_COLOR, FONT_WEIGHT)
 
     # If faces found
     else:
@@ -76,7 +75,7 @@ while cap.isOpened():
             # Calculate heart rate (after about FRAME_BUFFER_SIZE frames of data)
             if len(face_data[i]["frames"]) >= FRAME_BUFFER_SIZE:
 
-                # Keep buffer at most 180 frames long
+                # Keep the buffer at most 180 frames long
                 face_data[i]["frames"] = face_data[i]["frames"][-FRAME_BUFFER_SIZE:]
 
                 # Extract bvp signal
@@ -85,15 +84,9 @@ while cap.isOpened():
                 # Extract heart rate from BVP signal
                 bpm = bvp_signal_to_heart_rate(bvp, fps)
 
-                # Store data in array
+                # Store data in an array
                 estimated_bpm = f"{int(bpm)} BPM"
                 face_data[i]["bpm"] = estimated_bpm
-
-            # Draw face contour landmark positions
-            for idx in FACE_CONTOUR_LANDMARK_LOCATIONS:
-                pt = face_lms.landmark[idx]
-                cx, cy = int(pt.x * w), int(pt.y * h)
-                cv2.circle(frame, (cx, cy), 2, FACE_CONTOUR_COLOR, -1)
 
             # Draw face boundary landmark positions
             for idx in ROI_LANDMARK_LOCATIONS:
@@ -104,11 +97,14 @@ while cap.isOpened():
             # Show estimated heart rate for every face
             tx, ty = int(face_lms.landmark[10].x * w), int(face_lms.landmark[10].y * h) - 40
             cv2.putText(frame, face_data[i]["bpm"], (tx - 50, ty),
-                        DISPLAY_FONT, 0.8, FACE_CONTOUR_COLOR, FONT_WEIGHT)
+                        DISPLAY_FONT, 0.8, ROI_LANDMARK_COLOR, FONT_WEIGHT)
 
     # Window settings
     cv2.imshow("rPPG Demo", frame)
+
+    # Allow closing via button or window cross
     if cv2.waitKey(1) & 0xFF == ord('q'): break
+    if cv2.getWindowProperty("rPPG Demo", cv2.WND_PROP_VISIBLE) < 1: break
 
 # Stop video stream
 cap.release()
