@@ -59,46 +59,37 @@ def extract_bvp_signal_pos(rgb_values: np.ndarray, fs: float) -> np.ndarray:
     """
     Extracts the BVP signal using the POS method, matching the POS_WANG implementation.
     """
-    # 1. Van ROI-pixels naar RGB-gemiddelden per frame (zoals _process_video)
+    # Calculate RGB average per frame for all patches in a frame
     rgb_signal = []
     for frame_pixels in rgb_values:
         if frame_pixels.size > 0:
-            # POS_WANG gebruikt het gemiddelde van alle pixels in de ROI
             rgb_signal.append(np.mean(frame_pixels, axis=0))
-
     RGB = np.array(rgb_signal)
     N = RGB.shape[0]
 
-    # Grootte van het sliding window
+    # Calculate the size of the sliding window
     window_size = 1.6
     l = math.ceil(window_size * fs)
 
-    # Initialiseer H signaal (1D array voor overlap-add)
+    # Perform POS algorithm
     H = np.zeros(N)
-
-    # 2. POS Algoritme kern
     for n in range(N):
         m = n - l
         if m >= 0:
-            # Venster selectie
+            # Select window
             window = RGB[m:n, :]
 
-            # Stap A: Normalisatie per kanaal (Cn)
-            # np.true_divide(RGB[m:n, :], np.mean(RGB[m:n, :], axis=0))
+            # Normalize per channel
             mean_window = np.mean(window, axis=0)
             if np.any(mean_window == 0): continue
             Cn = window / mean_window
-
-            # Stap B: Matrix operaties
-            # In POS_WANG: Cn = np.mat(Cn).H (transpositie naar 3 x L)
             Cn_t = Cn.T
 
-            # Projectie matrix
+            # Projection matrix
             projection_matrix = np.array([[0, 1, -1], [-2, 1, 1]])
             S = np.matmul(projection_matrix, Cn_t)
 
-            # Stap C: Alpha berekening en h bepaling
-            # h = S[0, :] + (std(S1) / std(S2)) * S[1, :]
+            # Calculate h
             std_S1 = np.std(S[0, :])
             std_S2 = np.std(S[1, :])
 
@@ -107,21 +98,18 @@ def extract_bvp_signal_pos(rgb_values: np.ndarray, fs: float) -> np.ndarray:
             alpha = std_S1 / std_S2
             h = S[0, :] + alpha * S[1, :]
 
-            # Stap D: Mean centering van het resultaat h
-            # Dit komt overeen met: h[0, temp] = h[0, temp] - mean_h
+            # Mean center the result
             h_centered = h - np.mean(h)
 
-            # Stap E: Overlap-add
+            # Add overlap
             H[m:n] = H[m:n] + h_centered
 
-    # 3. Post-processing (exact volgens POS_WANG)
-    # Detrending
+    # Detrend signal to account for signal drift
     BVP = signal.detrend(H)
 
-    # Bandpass filter (0.75 Hz - 3.0 Hz)
+    # Bandpass filter between reasonable frequencies for heart rate (0.75 Hz - 3.0 Hz)
     if len(BVP) > 30:
         nyquist = fs / 2
-        # POS_WANG gebruikt [0.75 / fs * 2], wat gelijk is aan 0.75 / nyquist
         low = 0.75 / nyquist
         high = 3.0 / nyquist
         b, a = signal.butter(1, [low, high], btype='bandpass')
