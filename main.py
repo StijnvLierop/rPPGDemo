@@ -11,7 +11,7 @@ ROI_LANDMARK_COLOR = (0, 255, 0) # GREEN in BGR
 DISPLAY_FONT = cv2.FONT_HERSHEY_DUPLEX
 FONT_WEIGHT = 1
 BVP_EXTRACTION_METHOD = 'pos' # 'green' or 'pos'
-FRAME_BUFFER_SIZE = 180
+FRAME_BUFFER_SIZE = 300
 
 # Create face mesh tracker
 mp_face_mesh = mp.solutions.face_mesh
