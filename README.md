@@ -26,5 +26,5 @@ The demo is not validated for use in practice.
 Run the following commands:
 ```bash
 pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --collect-all mediapipe --name "rPPG Demo" --icon="icon.png" main
+pyinstaller --noconfirm --onefile --windowed --collect-all mediapipe --name "rPPG Demo" --icon="icon.png" --splash "splash.png" main.py
 ```
