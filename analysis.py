@@ -70,6 +70,8 @@ def extract_bvp_signal_pos(rgb_values: np.ndarray, fs: float) -> np.ndarray:
     # Calculate the size of the sliding window
     window_size = 1.6
     l = math.ceil(window_size * fs)
+    if N < l or l <= 0:
+        return np.zeros(N)
 
     # Perform POS algorithm
     H = np.zeros(N)

@@ -56,6 +56,9 @@ def run():
     # Close splash screen
     close_splash()
 
+    # Create window
+    cv2.namedWindow("rPPG Demo", cv2.WINDOW_NORMAL)
+
     # If no capture object, show this
     while not cap.isOpened():
         # Create a blank black frame
