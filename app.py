@@ -17,6 +17,43 @@ BVP_EXTRACTION_METHOD = 'pos' # 'green' or 'pos'
 FRAME_BUFFER_SIZE = 300
 
 
+def letterbox_to_window(frame: np.ndarray, window_name: str) -> np.ndarray:
+    """
+    Render the given frame inside the current window while preserving the
+    original aspect ratio by letterboxing/pillarboxing as needed.
+
+    If window geometry cannot be obtained, returns the original frame.
+    """
+    try:
+        # getWindowImageRect returns (x, y, w, h)
+        _, _, win_w, win_h = cv2.getWindowImageRect(window_name)
+        # Guard against minimized/invalid window sizes
+        if win_w is None or win_h is None or win_w <= 0 or win_h <= 0:
+            return frame
+
+        fh, fw = frame.shape[:2]
+        # Compute uniform scale to fit inside window
+        scale = min(win_w / float(fw), win_h / float(fh))
+        if scale <= 0:
+            return frame
+
+        new_w = max(1, int(round(fw * scale)))
+        new_h = max(1, int(round(fh * scale)))
+
+        # Resize with good downscaling filter
+        resized = cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        # Create a canvas that matches the drawable window area
+        canvas = np.zeros((win_h, win_w, 3), dtype=frame.dtype)
+        x = (win_w - new_w) // 2
+        y = (win_h - new_h) // 2
+        canvas[y:y + new_h, x:x + new_w] = resized
+        return canvas
+    except Exception:
+        # On any error, fall back to default behavior
+        return frame
+
+
 def close_splash():
     """
     Close the splash screen configured in PyInstaller.
@@ -50,6 +87,10 @@ def run():
     # Get webcam FPS
     fps = cap.get(cv2.CAP_PROP_FPS)
 
+    # If fps is 0, set to default 25
+    if fps == 0:
+        fps = 25
+
     # Create dictionary to keep track of face mesh landmark locations per face
     face_data = {}
 
@@ -57,7 +98,8 @@ def run():
     close_splash()
 
     # Create window
-    cv2.namedWindow("rPPG Demo", cv2.WINDOW_NORMAL)
+    cv2.namedWindow("rPPG Demo", cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_GUI_EXPANDED)
+    cv2.setWindowProperty("rPPG Demo", cv2.WND_PROP_ASPECT_RATIO, cv2.WINDOW_KEEPRATIO)
 
     # If no capture object, show this
     while not cap.isOpened():
@@ -68,7 +110,8 @@ def run():
         cv2.putText(frame, "Webcam niet gevonden!", (50, 240),
                     DISPLAY_FONT, 0.8, ROI_LANDMARK_COLOR, FONT_WEIGHT)
         # Window settings
-        cv2.imshow("rPPG Demo", frame)
+        frame_to_show = letterbox_to_window(frame, "rPPG Demo")
+        cv2.imshow("rPPG Demo", frame_to_show)
         
         # Allow closing via button or window cross
         if cv2.waitKey(1) & 0xFF == ord('q'): break
@@ -141,7 +184,8 @@ def run():
                             DISPLAY_FONT, 0.8, ROI_LANDMARK_COLOR, FONT_WEIGHT)
 
         # Window settings
-        cv2.imshow("rPPG Demo", frame)
+        frame_to_show = letterbox_to_window(frame, "rPPG Demo")
+        cv2.imshow("rPPG Demo", frame_to_show)
 
         # Allow closing via button or window cross
         if cv2.waitKey(1) & 0xFF == ord('q'): break
